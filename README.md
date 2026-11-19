@@ -26,4 +26,4 @@ No job control (no fg or bg).
 Environment variables (like $HOME) are not expanded in commands.
 
 Sources: 
-I used the Linux man pages for fork, execvp, waitpid, and signal. I also used AI assistance to help debug my waitpid loop for the background jobs.
+I used the Linux man pages for fork, execvp, waitpid, and signal. I also used AI assistance to help in debugging of my waitpid loop for the background jobs.
