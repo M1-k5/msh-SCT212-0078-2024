@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <fcntl.h>
 
 #define MAX_ARGS 64
 
@@ -19,6 +21,8 @@ int main(void) {
     ssize_t nread;
     char   *argv[MAX_ARGS];
     int     last_status = 0;
+
+    signal(SIGINT, SIG_IGN);
 
     while (1) {
         print_prompt(last_status);
@@ -74,12 +78,40 @@ int main(void) {
             argc--;
         }
 
+        char *redirect_file = NULL;
+        for (int i = 0; i < argc; i++) {
+            if (strcmp(argv[i], ">") == 0) {
+                if (i + 1 < argc) {
+                    redirect_file = argv[i + 1];
+                    argv[i] = NULL;
+                    argc = i;
+                }
+                break;
+            }
+        }
+
+        if (argc == 0) {
+            continue;
+        }
+
         pid_t pid = fork();
 
         if (pid < 0) {
             perror("fork failed");
             last_status = 1;
         } else if (pid == 0) {
+            signal(SIGINT, SIG_DFL);
+
+            if (redirect_file != NULL) {
+                int fd = open(redirect_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                if (fd < 0) {
+                    perror("open failed");
+                    _exit(1);
+                }
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+            }
+
             execvp(argv[0], argv);
             perror("execvp failed");
             _exit(127);
@@ -106,4 +138,3 @@ int main(void) {
     free(line);
     return 0;
 }
-
