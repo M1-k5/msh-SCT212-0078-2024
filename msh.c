@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #define MAX_ARGS 64
 
@@ -34,9 +35,17 @@ int main(void) {
             continue;
         }
 
-        for (int i = 0; i < argc; i++) {
-            write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-            write(STDOUT_FILENO, "\n", 1);
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            perror("fork failed");
+        } else if (pid == 0) {
+            execvp(argv[0], argv);
+            perror("execvp failed");
+            _exit(127);
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
         }
     }
 
