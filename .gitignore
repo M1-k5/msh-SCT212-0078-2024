@@ -1,0 +1,7 @@
+msh
+*.o
+*.out
+*.swp
+*~
+.vscode/
+f.txt
