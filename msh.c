@@ -31,10 +31,10 @@ int main(void) {
         }
 
         int argc = 0;
-        char *token = strtok(line, " \t\n");
+        char *token = strtok(line, " \t\n\r");
         while (token != NULL && argc < MAX_ARGS - 1) {
             argv[argc++] = token;
-            token = strtok(NULL, " \t\n");
+            token = strtok(NULL, " \t\n\r");
         }
         argv[argc] = NULL;
 
@@ -61,9 +61,17 @@ int main(void) {
         }
 
         if (strcmp(argv[0], "help") == 0) {
-            write(STDOUT_FILENO, "msh: simple shell\nBuilt-ins: cd [dir], help, exit\n", 48);
+            const char *help_msg = "msh: simple shell\nBuilt-ins: cd [dir], help, exit\n";
+            write(STDOUT_FILENO, help_msg, strlen(help_msg));
             last_status = 0;
             continue;
+        }
+
+        int background = 0;
+        if (argc > 0 && strcmp(argv[argc - 1], "&") == 0) {
+            background = 1;
+            argv[argc - 1] = NULL;
+            argc--;
         }
 
         pid_t pid = fork();
@@ -76,16 +84,26 @@ int main(void) {
             perror("execvp failed");
             _exit(127);
         } else {
-            int status;
-            waitpid(pid, &status, 0);
-            if (WIFEXITED(status)) {
-                last_status = WEXITSTATUS(status);
-            } else if (WIFSIGNALED(status)) {
-                last_status = 128 + WTERMSIG(status);
+            if (background) {
+                char buf[64];
+                int len = snprintf(buf, sizeof(buf), "[%d] %d\n", 1, pid);
+                write(STDOUT_FILENO, buf, len);
+            } else {
+                int status;
+                waitpid(pid, &status, 0);
+                if (WIFEXITED(status)) {
+                    last_status = WEXITSTATUS(status);
+                } else if (WIFSIGNALED(status)) {
+                    last_status = 128 + WTERMSIG(status);
+                }
             }
+        }
+
+        while (waitpid(-1, NULL, WNOHANG) > 0) {
         }
     }
 
     free(line);
     return 0;
 }
+
