@@ -51,11 +51,17 @@ int main(void) {
         }
 
         if (strcmp(argv[0], "cd") == 0) {
-            const char *dir = (argc > 1) ? argv[1] : getenv("HOME");
+            const char *dir;
+            if (argc > 1) {
+                dir = argv[1];
+            } else {
+                dir = getenv("HOME");
+            }
+            
             if (dir == NULL) {
                 write(STDERR_FILENO, "cd: HOME not set\n", 17);
                 last_status = 1;
-            } else if (chdir(dir) != 0) {
+            } else if (chdir(dir) == -1) {
                 perror("cd");
                 last_status = 1;
             } else {
